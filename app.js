@@ -3,6 +3,7 @@
 const express = require("express");
 const { connectDB } = require("./db");
 const user_ = require("./Modals/userModal");
+const contact = require("./Modals/contact");
 const app = express();
 
 connectDB();
@@ -21,7 +22,7 @@ app.get("/HelloApi", (req, res) => {
 });
 
 // Login route using a GET request (for educational purposes only)
-app.get("/login", (req, res) => {
+app.get("/login_local_db", (req, res) => {
   const { username, password } = req.query;
 
   // Check if the provided username and password match any user in the database
@@ -37,7 +38,7 @@ app.get("/login", (req, res) => {
 });
 
 // Signup route using a GET request (for educational purposes only)
-app.get("/signup", (req, res) => {
+app.get("/signup_local_db", (req, res) => {
   const { username, password } = req.query;
 
   // Check if the username already exists
@@ -94,7 +95,7 @@ app.post("/signin", async (req, res) => {
 
 app.get("/get_profile", async (req, res) => {
   const { id } = req.query;
-  
+
   const userLogin = await user_.findById(id);
 
   if (userLogin) {
@@ -107,6 +108,77 @@ app.get("/get_profile", async (req, res) => {
   } else {
     res.status(401).json("invalid credentials");
   }
+});
+
+app.post("/update_profile", async (req, res) => {
+  const { name, email, password } = req.body;
+  const userId = req.body.id; // Assuming you pass the userId for the user you want to update
+
+  if (!userId || (!name && !email && !password)) {
+    res.status(400).json({
+      message:
+        "Invalid request. Please provide userId and at least one field to update.",
+    });
+    return;
+  }
+
+  const user = await user_.findById(userId);
+
+  if (name) {
+    user.name = name;
+  }
+
+  if (email) {
+    user.email = email;
+  }
+
+  if (password) {
+    user.password = password;
+  }
+
+  user.save();
+
+  if (user) {
+    res.status(201).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      // token: generateToken(userLogin._id),
+    });
+  } else {
+    res.status(401).json("Operation was failed");
+  }
+});
+
+app.delete("/delete_account", async (req, res) => {
+  const { id } = req.query;
+
+  const deletedUser = await user_.findByIdAndDelete(id);
+
+  if (deletedUser) {
+    res.status(201).json(deletedUser);
+  } else {
+    res.status(401).json("invalid credentials");
+  }
+});
+
+app.post("/contact_us", async (req, res) => {
+  const { name, email, message } = req.body;
+
+  if (!name || !email || !message) {
+    return res
+      .status(400)
+      .json({ message: "Please provide name, email, and message." });
+  }
+
+  const contact_ = await contact.create({ name, email, message });
+  console.log("cdcdsc", contact_);
+
+  res.status(201).json({
+    name: contact_.name,
+    email: contact_.email,
+    email: contact_.message,
+  });
 });
 
 // Set the server to listen on port 3000
