@@ -1,14 +1,27 @@
 // Import the Express module
 // Create an instance of the Express application
 const express = require("express");
+const multer = require("multer");
+const bodyParser = require("body-parser");
+
 const { connectDB } = require("./db");
 const user_ = require("./Modals/userModal");
 const contact = require("./Modals/contact");
+const { default: mongoose } = require("mongoose");
+const Image = require("./Modals/images");
 const app = express();
 
 connectDB();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+
+// Set up multer for handling file uploads ---------- FOR IMAGE UPLOAD
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
+// Middleware to parse JSON requests
+app.use(bodyParser.json());
+// Set up multer for handling file uploads ---------- FOR IMAGE UPLOAD
 
 const users = [];
 const books = [
@@ -180,6 +193,49 @@ app.post("/contact_us", async (req, res) => {
     email: contact_.message,
   });
 });
+
+app.post("/upload_image", upload.single("image"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "Please upload an image." });
+  }
+
+  // Access the uploaded image data
+  const { originalname, buffer, mimetype } = req.file;
+
+  // Save the image data to the database
+  const newImage = new Image({
+    filename: originalname,
+    contentType: mimetype,
+    image: buffer,
+  });
+
+  await newImage.save();
+
+  res
+    .status(200)
+    .json({ message: "Image uploaded successfully", image: newImage });
+});
+
+app.get('/images/:id', async (req, res) => {
+  const imageId = req.params.id;
+
+  try {
+    // Find the image by ID
+    const image = await Image.findById(imageId);
+
+    if (!image) {
+      return res.status(404).json({ message: 'Image not found.' });
+    }
+
+    // Set the appropriate content type and send the image data
+    res.set('Content-Type', image.contentType);
+    res.send(image.image);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 // Set the server to listen on port 3000
 const port = 3001;
