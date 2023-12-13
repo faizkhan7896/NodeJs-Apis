@@ -9,6 +9,7 @@ const user_ = require("./Modals/userModal");
 const contact = require("./Modals/contact");
 const { default: mongoose } = require("mongoose");
 const Image = require("./Modals/images");
+const Post = require("./Modals/Post");
 const app = express();
 
 connectDB();
@@ -108,6 +109,7 @@ app.post("/signin", async (req, res) => {
 
 app.get("/get_profile", async (req, res) => {
   const { id } = req.query;
+  console.log(id);
 
   const userLogin = await user_.findById(id);
 
@@ -216,7 +218,7 @@ app.post("/upload_image", upload.single("image"), async (req, res) => {
     .json({ message: "Image uploaded successfully", image: newImage });
 });
 
-app.get('/images/:id', async (req, res) => {
+app.get("/images/:id", async (req, res) => {
   const imageId = req.params.id;
 
   try {
@@ -224,18 +226,82 @@ app.get('/images/:id', async (req, res) => {
     const image = await Image.findById(imageId);
 
     if (!image) {
-      return res.status(404).json({ message: 'Image not found.' });
+      return res.status(404).json({ message: "Image not found." });
     }
 
     // Set the appropriate content type and send the image data
-    res.set('Content-Type', image.contentType);
+    res.set("Content-Type", image.contentType);
     res.send(image.image);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
+app.get("/add_post", async (req, res) => {
+  const { id, title, content } = req.query;
+  console.log(id);
+  // return
+
+  if (!id || !title || !content) {
+    return res
+      .status(400)
+      .json({ message: "Please provide id, title, and content." });
+  }
+
+  try {
+    // Check if the user exists (replace 'User' with your actual user model)
+    const userExists = await user_.findById(id);
+
+    if (!userExists) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Create a new post
+    const newPost = new Post({
+      id,
+      title,
+      content,
+    });
+
+    // Save the post to the database
+    await newPost.save();
+
+    res.status(201).json({ message: "Post added successfully", post: newPost });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/getSingle_Post", async (req, res) => {
+  const { id } = req.query;
+  // const id = "6576d6e8a6534c4da10064cb";
+  console.log(id);
+
+  const All_UserPost = await Post.findById(id);
+  console.log(All_UserPost);
+
+  if (All_UserPost) {
+    res.status(201).json(All_UserPost);
+  } else {
+    res.status(401).json("invalid credentials");
+  }
+});
+app.get("/getUser_AllPost", async (req, res) => {
+  const { id } = req.query;
+  // const id = "6576d6e8a6534c4da10064cb";
+  console.log(id);
+
+  const All_UserPost = await Post.find({ id: id });
+  console.log(All_UserPost);
+
+  if (All_UserPost) {
+    res.status(201).json(All_UserPost);
+  } else {
+    res.status(401).json("invalid credentials");
+  }
+});
 
 // Set the server to listen on port 3000
 const port = 3001;
