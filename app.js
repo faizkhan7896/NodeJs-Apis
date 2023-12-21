@@ -10,6 +10,9 @@ const contact = require("./Modals/contact");
 const { default: mongoose } = require("mongoose");
 const Image = require("./Modals/images");
 const Post = require("./Modals/Post");
+const Chat = require("./Modals/Chat");
+const UserModal = require("./Modals/Users");
+const KIDS = require("./Modals/Kids");
 const app = express();
 
 connectDB();
@@ -288,18 +291,200 @@ app.get("/getSingle_Post", async (req, res) => {
     res.status(401).json("invalid credentials");
   }
 });
+
 app.get("/getUser_AllPost", async (req, res) => {
   const { id } = req.query;
   // const id = "6576d6e8a6534c4da10064cb";
   console.log(id);
 
   const All_UserPost = await Post.find({ id: id });
-  console.log(All_UserPost);
+  const userData = await user_.findById(id);
+  // console.log(userData);
 
   if (All_UserPost) {
-    res.status(201).json(All_UserPost);
+    res.status(201).json({ Data: All_UserPost, userData: userData });
   } else {
     res.status(401).json("invalid credentials");
+  }
+});
+
+app.get("/send_message", async (req, res) => {
+  const { sender, receiver, content } = req.query;
+  console.log(req.query);
+  // return
+  try {
+    // Check if sender and receiver users exist
+    const senderUser = await user_.findById(sender);
+    const receiverUser = await user_.findById(receiver);
+
+    // console.log(senderUser);
+
+    if (!senderUser || !receiverUser) {
+      return res
+        .status(404)
+        .json({ message: "Sender or receiver user not found." });
+    }
+
+    // Create a new message
+    const newMessage = new Chat({
+      sender,
+      receiver,
+      content,
+    });
+
+    // Save the message to the database
+
+    await newMessage.save();
+
+    res
+      .status(201)
+      .json({ message: "Message sent successfully", sentMessage: newMessage });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// API endpoint to get chat messages for a specific pair of users
+app.get("/get_chat/:senderId/:receiverId", async (req, res) => {
+  const { senderId, receiverId } = req.params;
+  // console.log(req.params);
+
+  try {
+    // Retrieve chat messages from the database
+    const messages = await Chat.find({
+      $or: [
+        { sender: senderId, receiver: receiverId },
+        { sender: receiverId, receiver: senderId },
+      ],
+    }).sort({ timestamp: 1 });
+
+    const senderUser = messages.forEach((v) => {
+      user_.findById(senderId);
+    });
+
+    res.status(200).json({ data: messages });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/send_otp", async (req, res) => {
+  const { phone } = req.body;
+
+  console.log(phone);
+
+  try {
+    // Check if the phone number already exists in the database
+    const existingOTP = await UserModal.findOne({ phone });
+
+    if (existingOTP) {
+      return res.status(409).json({ message: "Phone number already exist." });
+    }
+
+    // Generate a new OTP (you may use a more secure OTP generation method)
+
+    const user = await UserModal.create({ phone });
+
+    // const newOTPValue = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // // Save the new OTP to the database
+    // const newOTP = new OTP({
+    //   phone,
+    //   otp: newOTPValue,
+    // });
+
+    // await newOTP.save();
+
+    res.status(201).json({ message: "OTP sent successfully", user });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/verify_otp", async (req, res) => {
+  const { phone, enteredOTP } = req.body;
+
+  try {
+    // Find the OTP entry for the provided phone number
+    const otpEntry = await UserModal.findOne({ phone });
+
+    if (!otpEntry) {
+      return res
+        .status(404)
+        .json({ message: "OTP entry not found for this phone number." });
+    }
+
+    // Check if the entered OTP matches the stored OTP
+    if (enteredOTP === otpEntry.otp) {
+      // You can implement additional logic here for successful OTP verification
+      // For simplicity, we'll just return a success message in this example
+      return res.status(200).json({ message: "OTP verification successful." });
+    } else {
+      return res
+        .status(401)
+        .json({ message: "Incorrect OTP. Verification failed." });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/update_details", async (req, res) => {
+  const { userId, guardianName, alternatePhone, IdNumber } = req.body;
+
+  // console.log(userId, guardianName, alternatePhone, IdNumber);
+
+  if (!userId || (!guardianName && !alternatePhone && !IdNumber)) {
+    res.status(400).json({
+      message: "Invalid request. Please provide all details.",
+    });
+    return;
+  }
+
+  const user = await UserModal.findById(userId);
+
+  if (guardianName) {
+    user.guardianName = guardianName;
+  }
+
+  if (alternatePhone) {
+    user.alternatePhone = alternatePhone;
+  }
+
+  if (IdNumber) {
+    user.IdNumber = IdNumber;
+  }
+
+  user.save();
+
+  if (user) {
+    res
+      .status(201)
+      .json({ message: "Details Updated Successfully", userData: user });
+  } else {
+    res.status(401).json("Operation was failed");
+  }
+});
+
+app.post("/add_Kid", async (req, res) => {
+  const {userId, name, age, school, class_no, kid_Id } = req.body;
+
+  try {
+    if (!name || !age || !school || !class_no || !kid_Id || !userId) {
+      res.status(401).json({ message: "please add All details" });
+    }
+
+    const kids = await KIDS.create({ userId, name, age, school, class_no, kid_Id });
+    console.log("cdcdsc", kids);
+
+    res.status(201).json({ message: "Kid Add successfully", kids });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
