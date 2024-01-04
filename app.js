@@ -13,14 +13,36 @@ const Post = require("./Modals/Post");
 const Chat = require("./Modals/Chat");
 const UserModal = require("./Modals/Users");
 const KIDS = require("./Modals/Kids");
+const Cars_ = require("./Modals/Cars");
 const app = express();
+const path = require("path");
+const Guardian = require("./Modals/Guardians");
 
 connectDB();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
 // Set up multer for handling file uploads ---------- FOR IMAGE UPLOAD
-const storage = multer.memoryStorage();
+
+// Custom folder path for uploads (Desktop/Uploads)
+const customFolderPath = path.join(__dirname, "Uploads");
+
+// Set up multer for handling file uploads with custom folder path
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, customFolderPath);
+  },
+  filename: (req, file, cb) => {
+    // You can customize the filename if needed
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(
+      null,
+      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
+    );
+  },
+});
+
+// const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // Middleware to parse JSON requests
@@ -433,6 +455,35 @@ app.post("/verify_otp", async (req, res) => {
   }
 });
 
+app.post("/verify_alternate_otp", async (req, res) => {
+  const { phone, enteredOTP } = req.body;
+
+  try {
+    // Find the OTP entry for the provided phone number
+    const otpEntry = await UserModal.findOne({ phone });
+
+    if (!otpEntry) {
+      return res
+        .status(404)
+        .json({ message: "OTP entry not found for this phone number." });
+    }
+
+    // Check if the entered OTP matches the stored OTP
+    if (enteredOTP === otpEntry.otp) {
+      // You can implement additional logic here for successful OTP verification
+      // For simplicity, we'll just return a success message in this example
+      return res.status(200).json({ message: "OTP verification successful." });
+    } else {
+      return res
+        .status(401)
+        .json({ message: "Incorrect OTP. Verification failed." });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 app.post("/update_details", async (req, res) => {
   const { userId, guardianName, alternatePhone, IdNumber } = req.body;
 
@@ -471,20 +522,286 @@ app.post("/update_details", async (req, res) => {
 });
 
 app.post("/add_Kid", async (req, res) => {
-  const {userId, name, age, school, class_no, kid_Id } = req.body;
+  const { userId, name, age, school, class_no, kid_Id } = req.body;
 
   try {
     if (!name || !age || !school || !class_no || !kid_Id || !userId) {
       res.status(401).json({ message: "please add All details" });
     }
 
-    const kids = await KIDS.create({ userId, name, age, school, class_no, kid_Id });
+    const kids = await KIDS.create({
+      userId,
+      name,
+      age,
+      school,
+      class_no,
+      kid_Id,
+    });
     console.log("cdcdsc", kids);
 
-    res.status(201).json({ message: "Kid Add successfully", kids });
+    res
+      .status(201)
+      .json({ message: "Kid Add successfully", status: 200, kids });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/getAllKid_byId", async (req, res) => {
+  const { id } = req.query;
+  // const id = "6576d6e8a6534c4da10064cb";
+  console.log(id);
+
+  const kids = await KIDS.find({ userId: id });
+  const userData = await user_.findById(id);
+  // console.log(userData);
+  123;
+  if (kids) {
+    res.status(201).json({
+      Data: kids,
+      userData: userData,
+      message: "Successfully",
+      status: 200,
+    });
+  } else {
+    res.status(401).json("invalid credentials");
+  }
+});
+
+app.get("/getSingleKid", async (req, res) => {
+  const { id } = req.query;
+  // const id = "6576d6e8a6534c4da10064cb";
+  console.log(id);
+
+  const kids = await KIDS.find({ _id: id });
+
+  console.log("_________", kids);
+
+  if (kids?.length != 0) {
+    res.status(201).json({
+      Data: kids[0],
+      status: 200,
+    });
+  } else if (kids?.length == 0) {
+    res.status(404).json({ message: "Data Not Found", status: 404 });
+  } else {
+    res.status(401).json("invalid credentials");
+  }
+});
+
+app.delete("/delete_kid", async (req, res) => {
+  const { id } = req.query;
+
+  const deletedKid = await KIDS.findByIdAndDelete(id);
+
+  if (deletedKid) {
+    res.status(201).json({
+      data: deletedKid,
+      message: "Kid Deleted Successfully",
+      status: 200,
+    });
+  } else {
+    res.status(401).json("invalid ID");
+  }
+});
+
+app.post("/add_Car", upload.single("image"), async (req, res) => {
+  const { userId, plate_number, car_color } = req.body;
+
+  try {
+    if (!plate_number || !car_color || !userId) {
+      res.status(401).json({ message: "please add All details" });
+    }
+
+    const { originalname, buffer, mimetype } = req.file;
+
+    // Save the image data to the database
+    const image_ = new Image({
+      filename: originalname,
+      contentType: mimetype,
+      image: buffer,
+    });
+
+    const Cars = await Cars_.create({
+      userId,
+      plate_number,
+      car_color,
+      image_,
+    });
+    console.log("cdcdsc", Cars);
+
+    res
+      .status(201)
+      .json({ data: Cars, message: "Car Add successfully", status: 200 });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/getAll_Cars_byId", async (req, res) => {
+  const { id } = req.query;
+  // const id = "6576d6e8a6534c4da10064cb";
+  console.log(id);
+
+  const kids = await Cars_.find({ userId: id });
+  // const userData = await user_.findById(kids[0]?.userId);
+
+  // console.log(kids?.Data[0]);
+
+  if (kids) {
+    res.status(201).json({
+      Data: kids,
+      // userData: userData,
+      message: "Successfully",
+      status: 200,
+      // id:kids[0]?.userId
+    });
+  } else {
+    res.status(401).json("invalid credentials");
+  }
+});
+
+app.get("/getSingleCar", async (req, res) => {
+  const { id } = req.query;
+  // const id = "6576d6e8a6534c4da10064cb";
+  console.log(id);
+
+  const kids = await Cars_.find({ _id: id });
+
+  console.log("_________", kids);
+
+  if (kids?.length != 0) {
+    res.status(201).json({
+      Data: kids[0],
+      status: 200,
+    });
+  } else if (kids?.length == 0) {
+    res.status(404).json({ message: "Data Not Found", status: 404 });
+  } else {
+    res.status(401).json("invalid credentials");
+  }
+});
+
+app.delete("/delete_Car", async (req, res) => {
+  const { id } = req.query;
+
+  const deletedKid = await Cars_.findByIdAndDelete(id);
+
+  if (deletedKid) {
+    res.status(201).json({
+      data: deletedKid,
+      message: "Kid Deleted Successfully",
+      status: 200,
+    });
+  } else {
+    res.status(401).json("invalid ID");
+  }
+});
+
+app.post("/add_Guardian", upload.single("image"), async (req, res) => {
+  const { userId, full_name, gender, phone_number, relation, alternate_phone } =
+    req.body;
+
+  try {
+    if (
+      !userId ||
+      !full_name ||
+      !gender ||
+      !phone_number ||
+      !relation ||
+      !alternate_phone
+    ) {
+      res.status(401).json({ message: "please add All details" });
+    }
+
+    const { originalname, buffer, mimetype } = req.file;
+
+    // Save the image data to the database
+    const image_ = new Image({
+      filename: originalname,
+      contentType: mimetype,
+      image: buffer,
+    });
+
+    const guardians = await Guardian.create({
+      userId,
+      full_name,
+      gender,
+      phone_number,
+      relation,
+      alternate_phone,
+      image_,
+    });
+    console.log("cdcdsc", guardians);
+
+    res
+      .status(201)
+      .json({ data: guardians, message: "Guardian Add successfully", status: 200 });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/getAll_Guardian_byId", async (req, res) => {
+  const { id } = req.query;
+  // const id = "6576d6e8a6534c4da10064cb";
+  console.log(id);
+
+  const kids = await Guardian.find({ userId: id });
+  // const userData = await user_.findById(kids[0]?.userId);
+
+  // console.log(kids?.Data[0]);
+
+  if (kids) {
+    res.status(201).json({
+      Data: kids,
+      // userData: userData,
+      message: "Successfully",
+      status: 200,
+      // id:kids[0]?.userId
+    });
+  } else {
+    res.status(401).json("invalid credentials");
+  }
+});
+
+app.get("/getSingleGuardian", async (req, res) => {
+  const { id } = req.query;
+  // const id = "6576d6e8a6534c4da10064cb";
+  console.log(id);
+
+  const kids = await Guardian.find({ _id: id });
+
+  console.log("_________", kids);
+
+  if (kids?.length != 0) {
+    res.status(201).json({
+      Data: kids[0],
+      status: 200,
+    });
+  } else if (kids?.length == 0) {
+    res.status(404).json({ message: "Data Not Found", status: 404 });
+  } else {
+    res.status(401).json("invalid credentials");
+  }
+});
+
+app.delete("/delete_Guardian", async (req, res) => {
+  const { id } = req.query;
+
+  const deletedKid = await Guardian.findByIdAndDelete(id);
+
+  if (deletedKid) {
+    res.status(201).json({
+      data: deletedKid,
+      message: "Kid Deleted Successfully",
+      status: 200,
+    });
+  } else {
+    res.status(401).json("invalid ID");
   }
 });
 

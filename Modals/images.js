@@ -5,6 +5,7 @@ const imageSchema = new mongoose.Schema({
   contentType: String,
   image: Buffer,
   timestamp: { type: Date, default: Date.now },
+  
 });
 
 const Image = mongoose.model("Image", imageSchema);
