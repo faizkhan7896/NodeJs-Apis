@@ -17,6 +17,7 @@ const Cars_ = require("./Modals/Cars");
 const app = express();
 const path = require("path");
 const Guardian = require("./Modals/Guardians");
+const cron = require("node-cron");
 
 connectDB();
 app.use(express.urlencoded({ extended: false }));
@@ -49,11 +50,28 @@ const upload = multer({ storage: storage });
 app.use(bodyParser.json());
 // Set up multer for handling file uploads ---------- FOR IMAGE UPLOAD
 
+
 const users = [];
 const books = [
   { id: 1, title: "Node.js Basics", author: "John Doe" },
   { id: 2, title: "Express.js Guide", author: "Jane Smith" },
 ];
+
+// Function to be executed every day at 6 am
+function notifyAfternoon(message) {
+  console.log(message);
+  // Add your notification logic here
+}
+
+// Schedule the task to run at 6 am every day
+cron.schedule('00 15 * * *', () => {
+  notifyAfternoon("Good afternoon!");
+}, {
+  timezone: 'Asia/Kolkata' // Replace 'Asia/Kolkata' with your actual timezone
+});
+
+console.log('Scheduled task to run every day at 6 am');
+
 
 // Define a route that responds with "Hello, World!" when accessed
 app.get("/HelloApi", (req, res) => {
@@ -738,7 +756,11 @@ app.post("/add_Guardian", upload.single("image"), async (req, res) => {
 
     res
       .status(201)
-      .json({ data: guardians, message: "Guardian Add successfully", status: 200 });
+      .json({
+        data: guardians,
+        message: "Guardian Add successfully",
+        status: 200,
+      });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
