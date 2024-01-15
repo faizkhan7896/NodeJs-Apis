@@ -56,199 +56,7 @@ const books = [
   { id: 2, title: "Express.js Guide", author: "Jane Smith" },
 ];
 
-var NamazData = [
-  {
-    name: "Fajr",
-    start: "19:26 (IST)",
-    end: "07:09 (IST)",
-    date: "2024-01-10T00:00:00.000Z",
-    hijriDate: "28-06-1445",
-    city: "indore",
-    before_fard_sunnah: 2,
-    fard: 2,
-    after_fard_sunnah: 0,
-    after_fard_nafl: 0,
-    vitr: 0,
-    after_vitr_nafl: 0,
-    before_fard_sunnah_muakkadah: "Sunnat e muakkadah",
-    after_fard_sunnah_muakkadah: "NO",
-    witr_wajib: "NO",
-  },
-  {
-    name: "Dhuhr",
-    start: "19:26 (IST)",
-    end: "16:23 (IST)",
-    date: "2024-01-10T00:00:00.000Z",
-    hijriDate: "28-06-1445",
-    city: "indore",
-    before_fard_sunnah: 4,
-    fard: 4,
-    after_fard_sunnah: 2,
-    after_fard_nafl: 2,
-    vitr: 0,
-    after_vitr_nafl: 0,
-    before_fard_sunnah_muakkadah: "Sunnat e muakkadah",
-    after_fard_sunnah_muakkadah: "Sunnat e muakkadah",
-    witr_wajib: "NO",
-  },
-  {
-    name: "Asr",
-    start: "19:27 (IST)",
-    end: "17:59 (IST)",
-    date: "2024-01-10T00:00:00.000Z",
-    hijriDate: "28-06-1445",
-    city: "indore",
-    before_fard_sunnah: 4,
-    fard: 4,
-    after_fard_sunnah: 0,
-    after_fard_nafl: 0,
-    vitr: 0,
-    after_vitr_nafl: 0,
-    before_fard_sunnah_muakkadah: "Ghair e muakkadah",
-    after_fard_sunnah_muakkadah: "NO",
-    witr_wajib: "NO",
-  },
-  {
-    name: "Maghrib",
-    start: "19:28 (IST)",
-    end: "19:18 (IST)",
-    date: "2024-01-10T00:00:00.000Z",
-    hijriDate: "28-06-1445",
-    city: "indore",
-    before_fard_sunnah: 0,
-    fard: 3,
-    after_fard_sunnah: 2,
-    after_fard_nafl: 2,
-    vitr: 0,
-    after_vitr_nafl: 0,
-    before_fard_sunnah_muakkadah: "NO",
-    after_fard_sunnah_muakkadah: "Sunnat e muakkadah",
-    witr_wajib: "NO",
-  },
-  {
-    name: "Isha",
-    start: "19:29 (IST)",
-    end: "05:39 (IST)",
-    date: "2024-01-10T00:00:00.000Z",
-    hijriDate: "28-06-1445",
-    city: "indore",
-    before_fard_sunnah: 4,
-    fard: 4,
-    after_fard_sunnah: 2,
-    after_fard_nafl: 2,
-    vitr: 3,
-    after_vitr_nafl: 2,
-    before_fard_sunnah_muakkadah: "Ghair e muakkadah",
-    after_fard_sunnah_muakkadah: "Sunnat e muakkadah",
-    witr_wajib: "Waajib",
-  },
-];
-
-const sendNotification = async ({ tokens, title, body, included_segments }) => {
-  // alert('sending');
-  await fetch("https://onesignal.com/api/v1/notifications", {
-    method: "POST",
-    body: JSON.stringify({
-      // included_segments: ["Total Subscriptions"],   IF WANT TO SEND ALL USERS
-      app_id: "7fc94a18-92ae-4ac3-9a9d-587f10bc8656",
-      include_external_user_ids: tokens,
-      included_segments: included_segments,
-      contents: { en: body },
-      headings: { en: title },
-      app_url: "speedmeeting://",
-      large_icon: "ic_launcher_round",
-      small_icon: "ic_launcher_round",
-    }),
-
-    headers: {
-      "content-type": "application/json",
-      Authorization: "Bearer YzJmZDM5ODAtMGFhNy00ZDAwLWIyMmItZTg4NWM5YjNhNTM5",
-    },
-  })
-    .then((v) => v.json())
-    .then(console.log);
-};
-
-const GetNamaz = async () => {
-  try {
-    const url = "http://13.235.213.0:8080/api/v1/namaaz?days=1&city=indore";
-
-    const res = await fetch(url, { method: "GET" });
-
-    const rslt = await res.json();
-    console.log(rslt);
-
-    if (rslt.success == true) {
-      NamazData = rslt?.data;
-    }
-  } catch (e) {
-    console.log(e);
-  }
-};
-
-const GetDashboard = async () => {
-  try {
-    const url = "http://13.235.213.0:8080/api/v1/getDashboard?days=1";
-
-    const res = await fetch(url, { method: "GET" });
-
-    const rslt = await res.json();
-    console.log(rslt);
-
-    if (rslt.success == true) {
-      sendNotification({
-        tokens: ["657804c5e50592c31c690e07"],
-        title: "Daily Dhikr (Aaj ka Azkar)",
-        body:
-          rslt.data?.azkar[0]?.text +
-          "\n" +
-          rslt.data?.azkar[0]?.english_transliteration,
-      });
-
-      // return rslt.data;
-    } else {
-      ShowToast(rslt.msg || "Unknown error", "error");
-    }
-  } catch (e) {
-    ShowToast("An error occured.", "error");
-    console.log(e);
-  }
-};
-
-//  NamazData.forEach((element) => {
-//   console.log(element?.start?.split(':')[1]?.split(' ')[0]+' '+element?.start?.split(':')[0]);
-// });
-
-// console.log("-----", ttt);
-
-// Schedule the task to run at 6 am every day
-cron.schedule(
-  "00 25 19 * * *",
-  () => {
-    // GetDashboard();
-    // GetNamaz();
-    NamazData.forEach((element) => {
-      cron.schedule(
-        element?.start?.split(':')[1]?.split(' ')[0]+' '+element?.start?.split(':')[0]+ " * * *",
-        () => {
-          sendNotification({
-            tokens: ["657804c5e50592c31c690e07"],
-            title: element?.name,
-            body:element?.name,
-          });
-        },
-        {
-          timezone: "Asia/Kolkata", // Replace 'Asia/Kolkata' with your actual timezone
-        }
-      );
-    });
-    
-    
-  },
-  {
-    timezone: "Asia/Kolkata", // Replace 'Asia/Kolkata' with your actual timezone
-  }
-);
+var NamazData = [];
 
 // Define a route that responds with "Hello, World!" when accessed
 app.get("/HelloApi", (req, res) => {
@@ -596,25 +404,15 @@ app.post("/send_otp", async (req, res) => {
     // Check if the phone number already exists in the database
     const existingOTP = await UserModal.findOne({ phone });
 
-    if (existingOTP) {
-      return res.status(409).json({ message: "Phone number already exist." });
-    }
-
-    // Generate a new OTP (you may use a more secure OTP generation method)
+    // if (existingOTP) {
+    //   return res.status(409).json({ message: "Phone number already exist." });
+    // }
 
     const user = await UserModal.create({ phone });
 
-    // const newOTPValue = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // // Save the new OTP to the database
-    // const newOTP = new OTP({
-    //   phone,
-    //   otp: newOTPValue,
-    // });
-
-    // await newOTP.save();
-
-    res.status(201).json({ message: "OTP sent successfully", user });
+    res
+      .status(201)
+      .json({ user, message: "OTP sent successfully", status: 200 });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
@@ -638,11 +436,15 @@ app.post("/verify_otp", async (req, res) => {
     if (enteredOTP === otpEntry.otp) {
       // You can implement additional logic here for successful OTP verification
       // For simplicity, we'll just return a success message in this example
-      return res.status(200).json({ message: "OTP verification successful." });
+      return res.status(200).json({
+        userData: otpEntry,
+        message: "OTP verification successful.",
+        status: 200,
+      });
     } else {
       return res
         .status(401)
-        .json({ message: "Incorrect OTP. Verification failed." });
+        .json({ message: "Incorrect OTP, Verification failed." });
     }
   } catch (error) {
     console.error(error);
@@ -708,9 +510,11 @@ app.post("/update_details", async (req, res) => {
   user.save();
 
   if (user) {
-    res
-      .status(201)
-      .json({ message: "Details Updated Successfully", userData: user });
+    res.status(201).json({
+      userData: user,
+      message: "Details Updated Successfully",
+      status: 200,
+    });
   } else {
     res.status(401).json("Operation was failed");
   }
@@ -751,7 +555,6 @@ app.get("/getAllKid_byId", async (req, res) => {
   const kids = await KIDS.find({ userId: id });
   const userData = await user_.findById(id);
   // console.log(userData);
-  123;
   if (kids) {
     res.status(201).json({
       Data: kids,
@@ -802,10 +605,10 @@ app.delete("/delete_kid", async (req, res) => {
 });
 
 app.post("/add_Car", upload.single("image"), async (req, res) => {
-  const { userId, plate_number, car_color } = req.body;
+  const { userId, car_name, plate_number, car_color } = req.body;
 
   try {
-    if (!plate_number || !car_color || !userId) {
+    if (!car_name || !plate_number || !car_color || !userId) {
       res.status(401).json({ message: "please add All details" });
     }
 
@@ -820,6 +623,7 @@ app.post("/add_Car", upload.single("image"), async (req, res) => {
 
     const Cars = await Cars_.create({
       userId,
+      car_name,
       plate_number,
       car_color,
       image_,

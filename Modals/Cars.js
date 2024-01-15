@@ -8,6 +8,10 @@ const carsSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  car_name: {
+    type: String,
+    required: true,
+  },
   car_color: {
     type: String,
     required: true,
