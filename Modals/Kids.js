@@ -24,6 +24,11 @@ const kidsSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  image_: {
+    filename: String,
+    contentType: String,
+    image: Buffer,
+  },
   timestamp: {
     type: Date,
     default: Date.now,

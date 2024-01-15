@@ -520,13 +520,26 @@ app.post("/update_details", async (req, res) => {
   }
 });
 
-app.post("/add_Kid", async (req, res) => {
+app.post("/add_Kid", upload.single("image"), async (req, res) => {
   const { userId, name, age, school, class_no, kid_Id } = req.body;
+  console.log("req.file", req.body);
 
   try {
     if (!name || !age || !school || !class_no || !kid_Id || !userId) {
       res.status(401).json({ message: "please add All details" });
     }
+
+    console.log("req.file", req.file);
+    // return;
+
+    const { originalname, buffer, mimetype } = req.file;
+
+    // Save the image data to the database
+    const image_ = new Image({
+      filename: originalname,
+      contentType: mimetype,
+      image: buffer,
+    });
 
     const kids = await KIDS.create({
       userId,
@@ -535,6 +548,7 @@ app.post("/add_Kid", async (req, res) => {
       school,
       class_no,
       kid_Id,
+      image_,
     });
     console.log("cdcdsc", kids);
 
