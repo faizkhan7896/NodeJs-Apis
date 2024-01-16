@@ -17,6 +17,7 @@ const Cars_ = require("./Modals/Cars");
 const app = express();
 const path = require("path");
 const Guardian = require("./Modals/Guardians");
+const Orders_ = require("./Modals/Orders");
 const cron = require("node-cron");
 
 connectDB();
@@ -95,133 +96,6 @@ app.get("/signup_local_db", (req, res) => {
 
     res.status(201).json({ message: "Signup successful", user: newUser });
   }
-});
-
-app.post("/register", async (req, res) => {
-  const { name, email, password } = req.body;
-  console.log("cdcs", req.body.name);
-
-  // return;
-
-  if (!name || !email || !password) {
-    res.status(401).json({ message: "please add All details" });
-  }
-
-  const user = await user_.create({ name, email, password });
-  console.log("cdcdsc", user);
-
-  res.status(201).json({
-    name: user.name,
-    email: user.email,
-  });
-});
-
-app.post("/signin", async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    res.send("enter all field");
-  }
-  const userLogin = await user_.findOne({ email: email });
-
-  if (userLogin) {
-    res.status(201).json({
-      _id: userLogin._id,
-      name: userLogin.name,
-      email: userLogin.email,
-      // token: generateToken(userLogin._id),
-    });
-  } else {
-    res.status(401).json("invalid credentials");
-  }
-});
-
-app.get("/get_profile", async (req, res) => {
-  const { id } = req.query;
-  console.log(id);
-
-  const userLogin = await user_.findById(id);
-
-  if (userLogin) {
-    res.status(201).json({
-      _id: userLogin._id,
-      name: userLogin.name,
-      email: userLogin.email,
-      // token: generateToken(userLogin._id),
-    });
-  } else {
-    res.status(401).json("invalid credentials");
-  }
-});
-
-app.post("/update_profile", async (req, res) => {
-  const { name, email, password } = req.body;
-  const userId = req.body.id; // Assuming you pass the userId for the user you want to update
-
-  if (!userId || (!name && !email && !password)) {
-    res.status(400).json({
-      message:
-        "Invalid request. Please provide userId and at least one field to update.",
-    });
-    return;
-  }
-
-  const user = await user_.findById(userId);
-
-  if (name) {
-    user.name = name;
-  }
-
-  if (email) {
-    user.email = email;
-  }
-
-  if (password) {
-    user.password = password;
-  }
-
-  user.save();
-
-  if (user) {
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      // token: generateToken(userLogin._id),
-    });
-  } else {
-    res.status(401).json("Operation was failed");
-  }
-});
-
-app.delete("/delete_account", async (req, res) => {
-  const { id } = req.query;
-
-  const deletedUser = await user_.findByIdAndDelete(id);
-
-  if (deletedUser) {
-    res.status(201).json(deletedUser);
-  } else {
-    res.status(401).json("invalid credentials");
-  }
-});
-
-app.post("/contact_us", async (req, res) => {
-  const { name, email, message } = req.body;
-
-  if (!name || !email || !message) {
-    return res
-      .status(400)
-      .json({ message: "Please provide name, email, and message." });
-  }
-
-  const contact_ = await contact.create({ name, email, message });
-  console.log("cdcdsc", contact_);
-
-  res.status(201).json({
-    name: contact_.name,
-    email: contact_.email,
-    email: contact_.message,
-  });
 });
 
 app.post("/upload_image", upload.single("image"), async (req, res) => {
@@ -404,9 +278,13 @@ app.post("/send_otp", async (req, res) => {
     // Check if the phone number already exists in the database
     const existingOTP = await UserModal.findOne({ phone });
 
-    // if (existingOTP) {
-    //   return res.status(409).json({ message: "Phone number already exist." });
-    // }
+    if (existingOTP) {
+      // return res.status(409).json({ message: "Phone number already exist." });
+      res
+        .status(201)
+        .json({ existingOTP, message: "OTP sent successfully", status: 200 });
+      return;
+    }
 
     const user = await UserModal.create({ phone });
 
@@ -522,24 +400,22 @@ app.post("/update_details", async (req, res) => {
 
 app.post("/add_Kid", upload.single("image"), async (req, res) => {
   const { userId, name, age, school, class_no, kid_Id } = req.body;
-  console.log("req.file", req.body);
+  // console.log("req.file", JSON.stringify(req.body));
 
   try {
     if (!name || !age || !school || !class_no || !kid_Id || !userId) {
       res.status(401).json({ message: "please add All details" });
     }
 
-    console.log("req.file", req.file);
     // return;
-
-    const { originalname, buffer, mimetype } = req.file;
+    // const { originalname, buffer, mimetype } = req.file;
 
     // Save the image data to the database
-    const image_ = new Image({
-      filename: originalname,
-      contentType: mimetype,
-      image: buffer,
-    });
+    // const image_ = new Image({
+    //   filename: originalname,
+    //   contentType: mimetype,
+    //   image: buffer,
+    // });
 
     const kids = await KIDS.create({
       userId,
@@ -548,9 +424,7 @@ app.post("/add_Kid", upload.single("image"), async (req, res) => {
       school,
       class_no,
       kid_Id,
-      image_,
     });
-    console.log("cdcdsc", kids);
 
     res
       .status(201)
@@ -618,7 +492,7 @@ app.delete("/delete_kid", async (req, res) => {
   }
 });
 
-app.post("/add_Car", upload.single("image"), async (req, res) => {
+app.post("/add_Car_image", upload.single("image"), async (req, res) => {
   const { userId, car_name, plate_number, car_color } = req.body;
 
   try {
@@ -641,6 +515,31 @@ app.post("/add_Car", upload.single("image"), async (req, res) => {
       plate_number,
       car_color,
       image_,
+    });
+    console.log("cdcdsc", Cars);
+
+    res
+      .status(201)
+      .json({ data: Cars, message: "Car Add successfully", status: 200 });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/add_Car", upload.single("image"), async (req, res) => {
+  const { userId, car_name, plate_number, car_color } = req.body;
+
+  try {
+    if (!car_name || !plate_number || !car_color || !userId) {
+      res.status(401).json({ message: "please add All details" });
+    }
+
+    const Cars = await Cars_.create({
+      userId,
+      car_name,
+      plate_number,
+      car_color,
     });
     console.log("cdcdsc", Cars);
 
@@ -729,14 +628,14 @@ app.post("/add_Guardian", upload.single("image"), async (req, res) => {
       res.status(401).json({ message: "please add All details" });
     }
 
-    const { originalname, buffer, mimetype } = req.file;
+    // const { originalname, buffer, mimetype } = req.file;
 
     // Save the image data to the database
-    const image_ = new Image({
-      filename: originalname,
-      contentType: mimetype,
-      image: buffer,
-    });
+    // const image_ = new Image({
+    //   filename: originalname,
+    //   contentType: mimetype,
+    //   image: buffer,
+    // });
 
     const guardians = await Guardian.create({
       userId,
@@ -745,7 +644,7 @@ app.post("/add_Guardian", upload.single("image"), async (req, res) => {
       phone_number,
       relation,
       alternate_phone,
-      image_,
+      // image_,
     });
     console.log("cdcdsc", guardians);
 
@@ -820,8 +719,279 @@ app.delete("/delete_Guardian", async (req, res) => {
   }
 });
 
+app.post("/create_Order", async (req, res) => {
+  try {
+    const { user_id, kid_id, car_id, guardian_id, lat, lng, order_type } =
+      req.body;
+
+    const User = await UserModal.findById(user_id);
+    const Kid = await KIDS.findById(kid_id);
+    const Car = await Cars_.findById(car_id);
+    const Guardian_ = await Guardian.findById(guardian_id);
+    const order = await Orders_.create({
+      user_id,
+      kid_id,
+      car_id,
+      guardian_id,
+      lat,
+      lng,
+      order_type,
+    });
+
+    res.status(201).json({
+      data: {
+        orderData: order,
+        userData: User,
+        guardianData: Guardian_,
+        kidData: Kid,
+        carData: Car,
+      },
+      message: "Order Created Successfully",
+      status: 200,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/get_Order_by_Type", async (req, res) => {
+  try {
+    const { user_id, order_status } = req.body;
+
+    const order = await Orders_.find({
+      user_id: user_id,
+      order_status: order_status,
+    });
+
+    // const KidArray = order.forEach((element) => {
+    //   KIDS.find(element?.kid_id);
+    // });
+    // const Guardian_ = await Guardian.findById(order?.guardian_id);
+
+    res.status(201).json({
+      data: order,
+      // kidData: KidArray,
+      // guardianData: Guardian_,
+      message: "Order Data",
+      status: 200,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/accept_reject_Order", async (req, res) => {
+  try {
+    const { user_id, order_id, order_status } = req.body;
+
+    const order = await Orders_.findById(order_id);
+
+    if (user_id) {
+      order.carrier_id = user_id;
+    }
+    if (order_status) {
+      order.order_status = order_status;
+    }
+    order.save();
+
+    res.status(201).json({
+      orderData: order,
+      message: "Order Updated Successfully",
+      status: 200,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/update_Order", async (req, res) => {
+  try {
+    const { user_id, order_id, order_tracking } = req.body;
+
+    const order = await Orders_.findById(order_id);
+
+    if (user_id) {
+      order.carrier_id = user_id;
+    }
+    if (order_tracking) {
+      order.order_tracking = order_tracking;
+    }
+    order.save();
+
+    res.status(201).json({
+      orderData: order,
+      message: "Order Updated Successfully",
+      status: 200,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/get_Order", async (req, res) => {
+  try {
+    const { id } = req.query;
+
+    const order = await Orders_.findById(id);
+
+    const User = await UserModal.findById(order?.user_id);
+    const Kid = await KIDS.findById(order?.kid_id);
+    const Car = await Cars_.findById(order?.car_id);
+    const Guardian_ = await Guardian.findById(order?.guardian_id);
+
+    res.status(201).json({
+      data: {
+        orderData: order,
+        userData: User,
+        guardianData: Guardian_,
+        kidData: Kid,
+        carData: Car,
+      },
+      message: "Order Details",
+      status: 200,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// CARRIER APP API"S STARTED ROM THIS LINE
+
+app.post("/register", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    console.log("cdcs", req.body.name);
+
+    // return;
+
+    if (!name || !email || !password) {
+      res.status(401).json({ message: "please add All details", status: 400 });
+    }
+
+    const existingOTP = await user_.findOne({ email });
+
+    if (existingOTP) {
+      return res.status(409).json({ message: "Email already exist." });
+    }
+
+    const user = await user_.create({ name, email, password });
+    console.log("cdcdsc", user);
+
+    res
+      .status(201)
+      .json({ user, message: "resgiter successfully", status: 200 });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/signin", async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    res.send("enter all field");
+  }
+  const userLogin = await user_.findOne({ email: email });
+
+  if (userLogin) {
+    res
+      .status(201)
+      .json({ userLogin, message: "login successfully", status: 200 });
+  } else {
+    res.status(401).json("invalid credentials");
+  }
+});
+
+app.get("/get_profile", async (req, res) => {
+  const { id } = req.query;
+  console.log(id);
+
+  const userLogin = await user_.findById(id);
+
+  if (userLogin) {
+    res
+      .status(201)
+      .json({ userLogin, message: "data get successfully", status: 200 });
+  } else {
+    res.status(401).json("invalid credentials");
+  }
+});
+
+app.post("/update_profile", async (req, res) => {
+  const { name, email, password } = req.body;
+  const userId = req.body.id; // Assuming you pass the userId for the user you want to update
+
+  if (!userId || (!name && !email && !password)) {
+    res.status(400).json({
+      message:
+        "Invalid request. Please provide userId and at least one field to update.",
+    });
+    return;
+  }
+
+  const user = await user_.findById(userId);
+
+  if (name) {
+    user.name = name;
+  }
+
+  if (email) {
+    user.email = email;
+  }
+
+  if (password) {
+    user.password = password;
+  }
+
+  user.save();
+
+  if (user) {
+    res
+      .status(201)
+      .json({ user, message: "data get successfully", status: 200 });
+  } else {
+    res.status(401).json("Operation was failed");
+  }
+});
+
+app.delete("/delete_account", async (req, res) => {
+  const { id } = req.query;
+
+  const deletedUser = await user_.findByIdAndDelete(id);
+
+  if (deletedUser) {
+    res.status(201).json(deletedUser);
+  } else {
+    res.status(401).json("invalid credentials");
+  }
+});
+
+app.post("/contact_us", async (req, res) => {
+  const { name, email, message } = req.body;
+
+  if (!name || !email || !message) {
+    return res
+      .status(400)
+      .json({ message: "Please provide name, email, and message." });
+  }
+
+  const contact_ = await contact.create({ name, email, message });
+  console.log("cdcdsc", contact_);
+
+  res.status(201).json({
+    name: contact_.name,
+    email: contact_.email,
+    email: contact_.message,
+  });
+});
+
 // Set the server to listen on port 3000
-const port = 3001;
+const port = 3000;
 app.listen(port, () => {
   console.log(`Server is listening on port ${port}`);
 });
