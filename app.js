@@ -782,6 +782,36 @@ app.post("/get_Order_by_Type", async (req, res) => {
   }
 });
 
+app.get("/get_Active_Order", async (req, res) => {
+  try {
+    const orders = await Orders_.find({ order_status: "ACTIVE" });
+
+    const ordersWithDetails = await Promise.all(
+      orders.map(async (order) => {
+        const kidDetails = await KIDS.findById(order?.kid_id);
+        const guardianDetails = await Guardian.findById(order?.guardian_id);
+        const carDetails = await Cars_.findById(order?.car_id);
+
+        return {
+          ...order._doc,
+          kid: kidDetails,
+          guardian: guardianDetails,
+          car: carDetails,
+        };
+      })
+    );
+
+    res.status(201).json({
+      data: ordersWithDetails,
+      message: "All Active Orders",
+      status: 200,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 app.post("/accept_reject_Order", async (req, res) => {
   try {
     const { user_id, order_id, order_status } = req.body;
